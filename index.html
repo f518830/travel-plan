@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>雪旅萬全 - 智能規劃旗艦 Pro</title>
+    <title>雪旅萬全 - 智能規劃 Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root { 
@@ -25,7 +25,6 @@
 
         .inventory-content { flex-grow: 1; padding: 15px; overflow-y: auto; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 10px; }
         .item-tag { display: inline-flex; align-items: center; gap: 5px; padding: 8px 12px; border-radius: 10px; cursor: pointer; font-size: 13px; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .tag-del-btn { width: 18px; height: 18px; border-radius: 50%; background: #eee; color: #999; display: flex; align-items: center; justify-content: center; font-size: 12px; margin-left: 5px; }
 
         .template-panel { padding: 15px; background: rgba(255,255,255,0.2); border-top: 1px solid rgba(255,255,255,0.1); display: none; }
         .template-panel.show { display: block; }
@@ -49,10 +48,9 @@
         .progress-text { font-size: 14px; font-weight: 900; color: var(--accent); min-width: 50px; }
 
         #right-panel { flex-grow: 1; display: flex; gap: 15px; overflow-x: auto; padding-bottom: 10px; }
-        .kanban-col { min-width: 280px; flex: 1; border-radius: 18px; display: flex; flex-direction: column; border: 2px solid transparent; transition: 0.2s; }
-        .kanban-col.drag-over { border: 2px dashed #fff; transform: scale(1.02); background: rgba(255,255,255,0.1); }
+        .kanban-col { min-width: 280px; flex: 1; border-radius: 18px; display: flex; flex-direction: column; border: 2px solid transparent; }
+        .kanban-col.drag-over { border: 2px dashed #fff; background: rgba(255,255,255,0.1); }
 
-        /* 托運行李子分頁樣式 */
         .sub-tab-container { display: flex; background: rgba(0,0,0,0.1); margin: 0 10px; border-radius: 10px; padding: 3px; }
         .sub-tab { flex: 1; padding: 8px; border: none; background: none; color: #fff; font-weight: bold; cursor: pointer; font-size: 12px; border-radius: 8px; }
         .sub-tab.active { background: #fff; color: #D98156; }
@@ -65,7 +63,7 @@
         .col-title { padding: 15px; font-weight: 900; text-align: center; color: #fff; font-size: 1.1rem; }
 
         .card { display: flex; align-items: center; padding: 12px 16px; border-radius: 12px; background: #fff; cursor: grab; box-shadow: 0 4px 10px rgba(0,0,0,0.08); border-left: 6px solid transparent; }
-        .card.dragging { opacity: 0.3; transform: scale(0.9); }
+        .card.dragging { opacity: 0.3; }
         .card.completed { opacity: 0.6; filter: grayscale(0.8); }
         .card-left { flex-grow: 1; cursor: pointer; display: flex; align-items: center; }
         .card-text { font-size: 15px; font-weight: 700; color: #444; }
@@ -127,7 +125,7 @@
             <div class="col-title">📦 托運行李</div>
             <div class="sub-tab-container">
                 <button id="btn-tab-suitcase" class="sub-tab active" onclick="switchCheckSubTab('suitcase')">🧳 行李箱</button>
-                <button id="btn-tab-boardbag" class="sub-tab" onclick="switchCheckSubTab('boardbag')">🏂 板袋</button>
+                <button id="btn-tab-boardbag" class="sub-tab" onclick="switchCheckSubTab('boardbag')">專用板袋</button>
             </div>
             <div class="list-container" id="col-check"></div>
         </div>
@@ -157,10 +155,10 @@
     };
 
     const rules = [
-        { items: ["筆電", "平板", "行動電源", "攝影機", "相機", "遊戲主機"], forbidden: ["check"], message: "⚠️ 鋰電池與精密設備嚴禁托運！", type: "block" },
-        { items: ["護照", "錢包", "信用卡", "外幣現金", "台幣現金", "鑰匙"], forbidden: ["check"], message: "⚠️ 重要證件請隨身攜帶！", type: "block" },
+        { items: ["筆電", "平板", "行動電源", "攝影機", "相機", "遊戲主機"], forbidden: ["suitcase", "boardbag"], message: "⚠️ 鋰電池與精密設備嚴禁托運，請隨身攜帶！", type: "block" },
+        { items: ["護照", "錢包", "信用卡", "外幣現金", "台幣現金", "鑰匙"], forbidden: ["suitcase", "boardbag"], message: "⚠️ 重要證件請務必隨身攜帶！", type: "block" },
         { items: ["水果刀", "瑞士刀"], forbidden: ["carry"], message: "⚠️ 尖銳物品嚴禁隨身登機，僅能放置於「托運行李」。", type: "block" },
-        { items: ["機票", "住宿", "教練課程", "保險", "車票", "船票", "eSim"], forbidden: ["check", "carry"], message: "⚠️ 建議放於待辦或當地處理。", type: "block" },
+        { items: ["機票", "住宿", "教練課程", "保險", "車票", "船票", "eSim"], forbidden: ["suitcase", "boardbag", "carry"], message: "⚠️ 這是憑證類項目，請將它放在「待辦事項」或「當地處理」！", type: "block" },
         { items: ["卸妝用品", "化妝水", "精華液", "乳液", "防曬", "妝前乳", "粉底", "定妝噴霧", "香水", "洗髮精", "潤髮乳", "護髮乳", "沐浴乳", "洗面乳"], target: ["carry"], message: "📢 溫馨提醒：隨身液體限制 100ml，請放入透明袋內！", type: "alert" }
     ];
 
@@ -226,13 +224,15 @@
     function bulkAddCurrentTab() {
         dataConfig[currentTab].items.forEach(name => {
             if (!pickedItems.some(p => p.name === name)) {
-                // 優先使用目前右側顯示的托運子頁籤 (suitcase 或 boardbag)
                 let best = currentCheckSubTab;
-                // 檢查是否被禁止托運
-                const isForbidden = rules.find(r => r.items.includes(name) && r.forbidden.includes(best));
-                if (isForbidden) {
-                    // 如果禁止托運，則改放隨身行李
-                    best = 'carry';
+                // 檢查是否被「目前的托運方式」禁止
+                const isCheckForbidden = rules.find(r => r.type === "block" && r.items.includes(name) && r.forbidden.includes(best));
+                
+                if (isCheckForbidden) {
+                    // 如果托運不行，改隨身
+                    const isCarryForbidden = rules.find(r => r.type === "block" && r.items.includes(name) && r.forbidden.includes('carry'));
+                    // 如果隨身也不行，放待辦
+                    best = isCarryForbidden ? 'todo' : 'carry';
                 }
                 pickedItems.push({ name: name, target: best, completed: false, qty: 1 });
             }

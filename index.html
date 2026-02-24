@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>雪旅萬全 - 行李管家</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --bg-main: #9B90C2; 
+            --accent: #5A4F7C; 
+            --text-main: #2b2b2b;
+            --check-bg: #F0A986; 
+            --carry-bg: #FAD689; 
+            --local-bg: #7DB9DE; 
+            --todo-bg: #DC9FB4; 
+        }
+
+        * { box-sizing: border-box; }
+        body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg-main); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
+
+        /* 左側磨砂面板 */
+        #left-panel { width: 320px; background: rgba(255, 255, 255, 0.4); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.3); display: flex; flex-direction: column; flex-shrink: 0; margin: 15px; border-radius: 20px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15); }
+        .tab-menu { display: flex; overflow-x: auto; background: rgba(255, 255, 255, 0.2); border-bottom: 1px solid rgba(255, 255, 255, 0.1); flex-shrink: 0; border-radius: 20px 20px 0 0; }
+        .tab-link { padding: 15px; border: none; cursor: pointer; white-space: nowrap; background: none; color: #fff; font-size: 14px; font-weight: bold; transition: 0.3s; }
+        .tab-link.active { background: rgba(255, 255, 255, 0.4); box-shadow: inset 0 -3px 0 #fff; }
+        
+        .add-to-inventory { padding: 12px 15px; display: flex; gap: 8px; }
+        .add-to-inventory input { flex-grow: 1; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 8px; outline: none; background: rgba(255,255,255,0.8); }
+        .add-to-inventory button { background: var(--accent); color: white; border: none; padding: 8px 15px; cursor: pointer; border-radius: 8px; font-weight: bold; }
+
+        .inventory-content { flex-grow: 1; padding: 15px; overflow-y: auto; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 10px; }
+        .item-tag { display: inline-flex; align-items: center; gap: 5px; padding: 8px 12px; border-radius: 10px; cursor: pointer; font-size: 13px; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.2s; }
+        .item-tag:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .tag-del-btn { width: 18px; height: 18px; border-radius: 50%; background: #eee; color: #999; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+
+        .template-panel { padding: 15px; background: rgba(255,255,255,0.2); border-top: 1px solid rgba(255,255,255,0.1); display: none; }
+        .template-panel.show { display: block; animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        .template-list { display: flex; flex-wrap: wrap; gap: 8px; max-height: 120px; overflow-y: auto; margin-top: 10px; }
+        .template-tag { background: var(--accent); color: white; padding: 6px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+
+        .bulk-add-bar { padding: 15px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; gap: 8px; }
+        .btn-bulk { width: 100%; padding: 12px; background: #fff; border: 2px dashed var(--accent); color: var(--accent); font-weight: bold; border-radius: 12px; cursor: pointer; transition: 0.3s; }
+        .btn-bulk:hover { background: var(--accent); color: #fff; }
+        .template-ops { display: flex; gap: 8px; }
+        .btn-temp { flex: 1; padding: 10px; background: var(--accent); color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 12px; font-weight: bold; }
+
+        /* 右側看板 */
+        #right-container { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; padding: 15px 15px 15px 0; }
+        .top-control-bar { margin-bottom: 15px; padding: 15px 25px; background: rgba(255, 255, 255, 0.9); border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .user-greeting { display: flex; align-items: center; gap: 10px; font-weight: bold; color: var(--accent); font-size: 1.1rem; }
+        .user-greeting input { border: none; border-bottom: 2px solid var(--accent); background: transparent; width: 100px; text-align: center; font-size: 1.1rem; outline: none; font-weight: bold; color: var(--accent); }
+
+        .progress-section { flex-grow: 1; display: flex; align-items: center; gap: 15px; margin: 0 30px; }
+        .progress-container { flex-grow: 1; height: 14px; background: #eee; border-radius: 10px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
+        .progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #7DB9DE 0%, #5A4F7C 100%); transition: width 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .progress-text { font-size: 14px; font-weight: 900; color: var(--accent); min-width: 50px; }
+
+        #right-panel { flex-grow: 1; display: flex; gap: 15px; overflow-x: auto; padding-bottom: 10px; }
+        .kanban-col { min-width: 280px; flex: 1; border-radius: 18px; display: flex; flex-direction: column; border: 2px solid transparent; transition: 0.2s; position: relative; }
+        .kanban-col.drag-over { border: 2px dashed #fff; transform: scale(1.02); z-index: 10; background: rgba(255,255,255,0.15); }
+
+        .list-container { padding: 15px; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; min-height: 100px; }
+        .col-check { background-color: var(--check-bg); border-top: 10px solid #D98156; }
+        .col-carry { background-color: var(--carry-bg); border-top: 10px solid #D4A017; }
+        .col-local { background-color: var(--local-bg); border-top: 10px solid #4A89AE; }
+        .col-todo { background-color: var(--todo-bg); border-top: 10px solid #B5738A; }
+        .col-title { padding: 18px; font-weight: 900; text-align: center; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.2); font-size: 1.1rem; }
+
+        .card { display: flex; align-items: center; padding: 12px 16px; border-radius: 12px; background: #fff; cursor: grab; box-shadow: 0 4px 10px rgba(0,0,0,0.08); border-left: 6px solid transparent; transition: 0.2s; }
+        .card:hover { transform: translateX(5px); }
+        .card.dragging { opacity: 0.3; transform: scale(0.9); }
+        .card.completed { opacity: 0.6; filter: grayscale(0.8); }
+        
+        .card-left { flex-grow: 1; cursor: pointer; display: flex; align-items: center; }
+        .card-text { font-size: 15px; font-weight: 700; color: #444; }
+        .card-text.done { text-decoration: line-through; color: #aaa; }
+        
+        .quantity-controls { display: flex; align-items: center; gap: 6px; background: #f8f8f8; padding: 4px 12px; border-radius: 20px; margin-left: 10px; }
+        .qty-btn { border: none; background: none; cursor: pointer; font-weight: bold; color: var(--accent); font-size: 18px; padding: 0 5px; }
+        .qty-val { font-size: 14px; font-weight: bold; min-width: 20px; text-align: center; color: var(--accent); }
+        .qty-input { width: 45px; text-align: center; font-weight: bold; border: 2px solid var(--accent); border-radius: 8px; outline: none; }
+        .delete-btn { border: none; background: none; cursor: pointer; opacity: 0.3; margin-left: 8px; font-size: 16px; }
+
+        .card-check { border-left-color: #D98156; }
+        .card-carry { border-left-color: #D4A017; }
+        .card-local { border-left-color: #4A89AE; }
+        .card-todo { border-left-color: #B5738A; }
+
+        #dest-selector { position: absolute; background: #fff; border: 1px solid var(--accent); z-index: 1000; display: none; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); overflow: hidden; min-width: 200px; animation: popIn 0.2s ease; }
+        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        #dest-selector button { display: block; width: 100%; padding: 12px 20px; border: none; text-align: left; cursor: pointer; border-bottom: 1px solid #eee; font-size: 15px; font-weight: bold; color: var(--accent); background: #fff; transition: 0.2s; }
+        #dest-selector button:hover { background: #f0f0f0; padding-left: 25px; }
+
+        /* 行動端簡單覆蓋 (朋友用手機看的保險) */
+        @media (max-width: 768px) {
+            body { flex-direction: column; overflow-y: auto; height: auto; }
+            #left-panel { width: auto; margin: 10px; height: 400px; }
+            #right-container { padding: 10px; }
+            #right-panel { flex-direction: column; overflow-x: visible; }
+            .kanban-col { min-width: 0; margin-bottom: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="left-panel">
+    <div class="tab-menu" id="tab-menu"></div>
+    <div class="add-to-inventory">
+        <input type="text" id="new-item-input" placeholder="💡 新增自訂物品...">
+        <button onclick="addNewItemToInventory()">新增</button>
+    </div>
+    <div class="inventory-content" id="inventory-list"></div>
+    
+    <div class="template-panel" id="template-panel">
+        <div style="font-size: 12px; font-weight: bold; color: white; margin-bottom: 5px;">📂 我的儲存範本：</div>
+        <div class="template-list" id="template-list"></div>
+    </div>
+
+    <div class="bulk-add-bar">
+        <button class="btn-bulk" onclick="bulkAddCurrentTab()">＋ 將此類別全部加入看板</button>
+        <div class="template-ops">
+            <button class="btn-temp" onclick="saveNewTemplate()">💾 命名儲存</button>
+            <button class="btn-temp" style="background:#7DB9DE;" onclick="toggleTemplatePanel()">📂 載入範本</button>
+        </div>
+    </div>
+</div>
+
+<div id="right-container">
+    <div class="top-control-bar">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap: wrap; gap: 10px;">
+            <div class="user-greeting">
+                <span>🏂 Hi, </span><input type="text" id="username-input" placeholder="你的名字" oninput="updateUsername(this.value)"><span> 準備好出發了嗎？</span>
+            </div>
+            <div class="progress-section">
+                <div class="progress-container"><div class="progress-bar" id="progress-bar"></div></div>
+                <div class="progress-text" id="progress-text">0%</div>
+            </div>
+            <button class="item-tag" style="background: var(--accent); color:#fff;" onclick="clearAll()">🔄 重置看板</button>
+        </div>
+    </div>
+    
+    <div id="right-panel">
+        <div class="kanban-col col-check" ondragover="allowDrop(event)" ondragleave="clearDragHighlight(event)" ondrop="handleDrop(event, 'check')"><div class="col-title">📦 托運行李</div><div class="list-container" id="col-check"></div></div>
+        <div class="kanban-col col-carry" ondragover="allowDrop(event)" ondragleave="clearDragHighlight(event)" ondrop="handleDrop(event, 'carry')"><div class="col-title">🎒 隨身行李</div><div class="list-container" id="col-carry"></div></div>
+        <div class="kanban-col col-local" ondragover="allowDrop(event)" ondragleave="clearDragHighlight(event)" ondrop="handleDrop(event, 'local')"><div class="col-title">✈️ 當地處理</div><div class="list-container" id="col-local"></div></div>
+        <div class="kanban-col col-todo" ondragover="allowDrop(event)" ondragleave="clearDragHighlight(event)" ondrop="handleDrop(event, 'todo')"><div class="col-title">📝 待辦事項</div><div class="list-container" id="col-todo"></div></div>
+    </div>
+</div>
+
+<div id="dest-selector">
+    <button onclick="checkAndMove('check')">📦 移至 托運行李</button>
+    <button onclick="checkAndMove('carry')">🎒 移至 隨身行李</button>
+    <button onclick="checkAndMove('local')">✈️ 移至 當地處理</button>
+    <button onclick="checkAndMove('todo')">📝 移至 待辦事項</button>
+</div>
+
+<script>
+    const dataConfig = {
+        "ski": { name: "滑雪裝備", items: ["Snowboard", "Ski", "Snowboard Boots", "Ski Boots", "Binding", "安全帽", "Goggle"] },
+        "clothes": { name: "滑雪衣物", items: ["內層", "中層", "背心", "內搭褲", "護臀", "護膝", "雪衣", "雪褲", "毛帽", "面罩", "護腕", "手套", "內層手套", "雪襪", "襪子", "一般衣服", "外套", "睡衣", "內衣褲", "鞋子"] },
+        "important": { name: "重要物品", items: ["護照", "錢包", "鑰匙", "外幣現金", "台幣現金", "信用卡", "保險", "教練課程", "住宿", "機票", "車票", "船票", "eSim"] },
+        "daily": { name: "生活用品", items: ["浴巾", "毛巾", "洗髮精", "潤髮乳", "護髮乳", "沐浴乳", "牙刷", "牙膏", "洗面乳", "除毛刀", "刮鬍刀", "吹風機", "髮蠟", "隱形眼鏡", "眼鏡", "髮圈", "棉花棒", "生理用品", "充電器"] },
+        "beauty": { name: "美妝用品", items: ["卸妝用品", "化妝棉", "化妝水", "精華液", "乳液", "面膜", "護唇膏", "護手霜", "化妝刷", "海綿", "防曬", "妝前乳", "粉底", "蜜粉", "眉筆", "眉粉", "染眉膏", "眼影", "眼線筆", "眼線液筆", "腮紅", "唇膏", "打亮", "修容", "定妝噴霧", "香水"] },
+        "med": { name: "保健藥品", items: ["感冒藥", "止痛藥", "胃藥", "維他命", "益生菌", "OK蹦"] },
+        "other": { name: "其他項目", items: ["筆電", "平板", "行動電源", "攝影機", "相機", "底片", "遊戲主機", "餐具", "熱水壺", "水果刀", "瑞士刀"] }
+    };
+
+    const rules = [
+        { items: ["筆電", "平板", "行動電源", "攝影機", "相機", "遊戲主機"], forbidden: ["check"], message: "⚠️ 鋰電池與精密設備嚴禁托運！", type: "block" },
+        { items: ["護照", "錢包", "信用卡", "外幣現金", "台幣現金", "鑰匙"], forbidden: ["check"], message: "⚠️ 重要證件請隨身攜帶！", type: "block" },
+        { items: ["水果刀", "瑞士刀"], forbidden: ["carry"], message: "⚠️ 尖銳物品嚴禁隨身登機，僅能放置於「托運行李」。", type: "block" },
+        { items: ["機票", "住宿", "教練課程", "保險", "車票", "船票", "eSim"], forbidden: ["check", "carry"], message: "⚠️ 建議放於待辦或當地處理。", type: "block" },
+        { items: ["卸妝用品", "化妝水", "精華液", "乳液", "防曬", "妝前乳", "粉底", "定妝噴霧", "香水", "洗髮精", "潤髮乳", "護髮乳", "沐浴乳", "洗面乳"], target: ["carry"], message: "📢 溫馨提醒：隨身液體限制 100ml，請放入透明袋內！", type: "alert" }
+    ];
+
+    let pickedItems = [];
+    let selectedItemName = null, draggedItemName = null, currentTab = "ski";
+
+    function init() {
+        const menu = document.getElementById('tab-menu');
+        Object.keys(dataConfig).forEach((key, idx) => {
+            const b = document.createElement('button');
+            b.className = `tab-link ${idx===0?'active':''}`;
+            b.innerText = dataConfig[key].name;
+            b.onclick = () => { currentTab=key; document.querySelectorAll('.tab-link').forEach(x=>x.classList.remove('active')); b.classList.add('active'); renderLeft(); };
+            menu.appendChild(b);
+        });
+        loadData(); renderLeft(); renderTemplates();
+    }
+
+    function allowDrop(e) { e.preventDefault(); const col = e.currentTarget; if (!col.classList.contains('drag-over')) col.classList.add('drag-over'); }
+    function clearDragHighlight(e) { e.currentTarget.classList.remove('drag-over'); }
+
+    function handleDrop(e, target) {
+        e.preventDefault();
+        e.currentTarget.classList.remove('drag-over');
+        const block = rules.find(r => r.type === "block" && r.items.includes(draggedItemName) && r.forbidden.includes(target));
+        if (block) { alert(block.message); return; }
+        const item = pickedItems.find(p => p.name === draggedItemName);
+        if (item) {
+            const a = rules.find(r => r.type === "alert" && r.items.includes(draggedItemName) && r.target.includes(target));
+            if (a) alert(a.message);
+            item.target = target; saveData(); renderRight();
+        }
+    }
+
+    function bulkAddCurrentTab() {
+        let alerts = new Set();
+        dataConfig[currentTab].items.forEach(name => {
+            if (!pickedItems.some(p => p.name === name)) {
+                let best = 'check';
+                const blockRule = rules.find(r => r.type === "block" && r.items.includes(name) && r.forbidden.includes('check'));
+                if (blockRule) { best = blockRule.forbidden.includes('carry') ? 'todo' : 'carry'; }
+                const alertRule = rules.find(r => r.type === "alert" && r.items.includes(name) && r.target.includes(best));
+                if (alertRule) alerts.add(alertRule.message);
+                pickedItems.push({ name: name, target: best, completed: false, qty: 1 });
+            }
+        });
+        saveData(); renderLeft(); renderRight();
+        if (alerts.size > 0) setTimeout(() => alert(Array.from(alerts).join('\n')), 100);
+    }
+
+    function renderRight() {
+        ['check', 'carry', 'local', 'todo'].forEach(col => {
+            const container = document.getElementById('col-' + col); container.innerHTML = "";
+            pickedItems.filter(p => p.target === col).forEach(item => {
+                const div = document.createElement('div'); div.className = `card card-${col} ${item.completed?'completed':''}`;
+                div.draggable = true; 
+                div.ondragstart = (e) => { draggedItemName = item.name; e.currentTarget.classList.add('dragging'); };
+                div.ondragend = (e) => { e.currentTarget.classList.remove('dragging'); };
+                div.innerHTML = `<div class="card-left" onclick="toggleComplete('${item.name}')"><span class="card-text ${item.completed?'done':''}">${item.name}</span></div>
+                    <div class="quantity-controls">
+                        <button class="qty-btn" onclick="updateQty('${item.name}',-1)">-</button>
+                        <span id="qty-disp-${item.name}" class="qty-val" onclick="switchToInput('${item.name}', ${item.qty})">${item.qty}</span>
+                        <button class="qty-btn" onclick="updateQty('${item.name}',1)">+</button>
+                    </div>
+                    <button class="delete-btn" onclick="removeItem('${item.name}')">✕</button>`;
+                container.appendChild(div);
+            });
+        });
+        updateProgress();
+    }
+
+    function switchToInput(name, currentVal) {
+        const span = document.getElementById(`qty-disp-${name}`);
+        const input = document.createElement('input');
+        input.type = "number"; input.className = "qty-input"; input.value = currentVal;
+        const finishEdit = () => {
+            let newVal = parseInt(input.value); if (isNaN(newVal) || newVal < 1) newVal = 1;
+            const item = pickedItems.find(p => p.name === name); if (item) item.qty = newVal;
+            saveData(); renderRight();
+        };
+        input.onblur = finishEdit; input.onkeydown = (e) => { if(e.key === 'Enter') finishEdit(); };
+        span.replaceWith(input); input.focus(); input.select();
+    }
+
+    function renderLeft() {
+        const list = document.getElementById('inventory-list'); list.innerHTML = "";
+        dataConfig[currentTab].items.forEach(name => {
+            if (!pickedItems.some(p => p.name === name)) {
+                const div = document.createElement('div'); div.className = 'item-tag';
+                div.innerHTML = `<span onclick="triggerShowSelector(event, '${name}')">${name}</span><div class="tag-del-btn" onclick="deleteFromInv(event, '${name}')">−</div>`;
+                list.appendChild(div);
+            }
+        });
+    }
+
+    function triggerShowSelector(e, name) {
+        selectedItemName = name; const s = document.getElementById('dest-selector');
+        s.style.display = 'block'; s.style.left = e.pageX + 'px';
+        s.style.top = (e.pageY > window.innerHeight - 200 ? e.pageY - 180 : e.pageY) + 'px';
+        e.stopPropagation();
+    }
+
+    function checkAndMove(target) {
+        const block = rules.find(r => r.type === "block" && r.items.includes(selectedItemName) && r.forbidden.includes(target));
+        if (block) { alert(block.message); return; }
+        const a = rules.find(r => r.type === "alert" && r.items.includes(selectedItemName) && r.target.includes(target));
+        if (a) alert(a.message);
+        pickedItems.push({ name: selectedItemName, target: target, completed: false, qty: 1 });
+        saveData(); renderLeft(); renderRight();
+    }
+
+    function updateQty(name, d) { const i = pickedItems.find(p => p.name === name); if(i){i.qty = Math.max(1, i.qty + d); saveData(); renderRight();} }
+    function toggleComplete(name) { const i = pickedItems.find(p => p.name === name); if(i){i.completed = !i.completed; saveData(); renderRight();} }
+    function removeItem(name) { pickedItems = pickedItems.filter(p => p.name !== name); saveData(); renderLeft(); renderRight(); }
+    function updateUsername(n) { localStorage.setItem('ski-user', n); }
+    function saveData() { localStorage.setItem('ski-picked', JSON.stringify(pickedItems)); }
+    function loadData() {
+        const p = localStorage.getItem('ski-picked'), u = localStorage.getItem('ski-user');
+        if(p) pickedItems = JSON.parse(p); if(u) document.getElementById('username-input').value = u;
+        renderRight();
+    }
+    function clearAll() { if(confirm("確定重置看板？")) { pickedItems = []; saveData(); renderRight(); renderLeft(); } }
+    function toggleTemplatePanel() { document.getElementById('template-panel').classList.toggle('show'); }
+    function renderTemplates() {
+        const list = document.getElementById('template-list'); list.innerHTML = "";
+        const templates = JSON.parse(localStorage.getItem('ski-templates-list') || "{}");
+        Object.keys(templates).forEach(name => {
+            const tag = document.createElement('div'); tag.className = 'template-tag';
+            tag.innerHTML = `<span onclick="loadSpecificTemplate('${name}')">${name}</span><span onclick="deleteTemplate(event, '${name}')" style="font-size:10px; opacity:0.7;">✕</span>`;
+            list.appendChild(tag);
+        });
+    }
+    function saveNewTemplate() {
+        const name = prompt("為這個範本命名："); if (!name) return;
+        let templates = JSON.parse(localStorage.getItem('ski-templates-list') || "{}");
+        templates[name] = JSON.parse(JSON.stringify(pickedItems));
+        localStorage.setItem('ski-templates-list', JSON.stringify(templates));
+        renderTemplates(); document.getElementById('template-panel').classList.add('show');
+    }
+    function loadSpecificTemplate(name) {
+        const templates = JSON.parse(localStorage.getItem('ski-templates-list') || "{}");
+        if (templates[name]) { pickedItems = JSON.parse(JSON.stringify(templates[name])); saveData(); renderRight(); renderLeft(); }
+    }
+    function deleteTemplate(e, name) {
+        e.stopPropagation();
+        if (confirm(`確定刪除範本「${name}」？`)) {
+            let templates = JSON.parse(localStorage.getItem('ski-templates-list') || "{}");
+            delete templates[name];
+            localStorage.setItem('ski-templates-list', JSON.stringify(templates));
+            renderTemplates();
+        }
+    }
+    function updateProgress() {
+        const total = pickedItems.length, done = pickedItems.filter(p => p.completed).length;
+        const percent = total === 0 ? 0 : Math.round((done / total) * 100);
+        document.getElementById('progress-bar').style.width = percent + '%';
+        document.getElementById('progress-text').innerText = percent + '%';
+    }
+    function deleteFromInv(e, n) { e.stopPropagation(); dataConfig[currentTab].items = dataConfig[currentTab].items.filter(i => i !== n); renderLeft(); }
+    function addNewItemToInventory() {
+        const input = document.getElementById('new-item-input');
+        if (input.value && !dataConfig[currentTab].items.includes(input.value)) {
+            dataConfig[currentTab].items.push(input.value); renderLeft(); input.value = "";
+        }
+    }
+    window.onclick = () => document.getElementById('dest-selector').style.display = 'none';
+    window.onload = init;
+</script>
+</body>
+</html>
